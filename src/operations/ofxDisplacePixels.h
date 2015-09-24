@@ -5,6 +5,14 @@
 //  Copyright 2012 http://PatricioGonzalezVivo.com All rights reserved.
 //
 //  Use a normalMap (tex0) to displace pixels
+
+/*
+Something has changed, not sure if between 8.4 and 0.9 but water colours don't behave the same.
+There is more black in them. I'm guess if an initial uninitialised frame contains black it 
+will spread to next.
+
+It seems r in the displacement map pulls top left, and g bottom right. Blue is ignored.
+*/
 //
 
 #pragma once
@@ -27,10 +35,10 @@ public:
                                        vec2 st = gl_TexCoord[0].st;
                                        
                                        vec4 newFrame = texture2DRect(backbuffer, st);
-                                       vec4 color   = vec4(0,0,0,0);
+                                       vec4 color   = vec4(0.0,0.0,0.0,0.0);
                                        vec2 norm	= ( texture2DRect(tex0, st).rg - 0.5 ) * 2.0;
                                        float inc	= ( abs(norm.x) + abs(norm.y) ) * 0.5;
-
+/////
 //                                       vec2 offset[9];
 //                                       offset[0] = vec2(-1.0, -1.0);
 //                                       offset[1] = vec2(0.0, -1.0);
@@ -54,7 +62,7 @@ public:
 //                                               }
 //                                           }
 //                                       }
-                                       
+ /////
                                        vec2 offset[36];
                                        int iTotal = 36;
                                        float fTotal = 36.0;
@@ -79,16 +87,25 @@ public:
                                        }
                                        
                                        color = color / sources;
-                                       
-                                       gl_FragColor = color*(1.0-inc) + newFrame*inc ;
+                                       //norm is displacement colour = tex0
+                                       //newFrame is content = backbuffer
+                                        //borg fix for black flooding
+                                       if(newFrame.r > 0.0 && color.r>0.0){
+                                            gl_FragColor = color*(1.0-inc) + newFrame*inc;
+                                       }else{
+                                            gl_FragColor = color;
+                                       }
+
+
                                    }
                                    );
     }
     
     void update(){
         pingPong.dst->begin();
-        
+
         shader.begin();
+        
         shader.setUniformTexture( "tex0" , textures[0].getTexture(), 1 );
         
         ofSetColor(255);
